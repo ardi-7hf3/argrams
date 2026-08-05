@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* Instagram's signature icon gradient — used sparingly, on the primary
+   action and the "story ring" motif only. */
+.ig-gradient {
+  background: linear-gradient(45deg, #833ab4 0%, #fd1d1d 50%, #fcaf45 100%);
+}
+
+.ig-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(45deg, #833ab4 0%, #fd1d1d 50%, #fcaf45 100%);
+  padding: 3px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
