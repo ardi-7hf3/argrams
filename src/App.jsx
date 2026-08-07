@@ -39,6 +39,7 @@ export default function App() {
   const [status, setStatus] = useState('idle') // idle | loading | done | error
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [errorDetail, setErrorDetail] = useState('')
 
   function switchTab(id) {
     setTab(id)
@@ -46,6 +47,7 @@ export default function App() {
     setStatus('idle')
     setResult(null)
     setError('')
+    setErrorDetail('')
   }
 
   async function handleSubmit(e) {
@@ -70,16 +72,22 @@ export default function App() {
 
     setStatus('loading')
     setError('')
+    setErrorDetail('')
     try {
       const param = tab === 'post' ? 'url' : 'username'
       const res = await fetch(`${ENDPOINTS[tab]}?${param}=${encodeURIComponent(query)}`)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Gagal memproses permintaan.')
+      if (!res.ok) {
+        const err = new Error(data.error || 'Gagal memproses permintaan.')
+        err.detail = data.detail
+        throw err
+      }
       setResult(data)
       setStatus('done')
     } catch (err) {
       setStatus('error')
       setError(err.message || 'Terjadi kesalahan. Coba lagi.')
+      setErrorDetail(err.detail || '')
     }
   }
 
@@ -131,7 +139,14 @@ export default function App() {
             className="w-full rounded-xl border border-line bg-paper px-4 py-3 text-[14px] outline-none focus:border-ink/30 transition-colors placeholder:text-muted"
           />
 
-          {status === 'error' && <p className="text-sm text-[#ED4956] px-1">{error}</p>}
+          {status === 'error' && (
+            <div className="px-1">
+              <p className="text-sm text-[#ED4956]">{error}</p>
+              {errorDetail && (
+                <p className="text-[11px] text-muted mt-1 font-mono break-all">{errorDetail}</p>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"
