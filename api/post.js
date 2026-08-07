@@ -19,7 +19,8 @@ export default async function handler(req, res) {
   try {
     const pageRes = await fetch(`https://www.instagram.com/p/${shortcode}/embed/captioned/`, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
       },
     })
     const html = await pageRes.text()
@@ -29,7 +30,10 @@ export default async function handler(req, res) {
     const images = [...new Set(imageMatches.map((m) => unescapeUrl(m[1])))]
 
     if (!videoMatch && images.length === 0) {
-      res.status(404).json({ error: 'Media tidak ditemukan. Akun mungkin privat atau link tidak valid.' })
+      res.status(404).json({
+        error: 'Media tidak ditemukan. Akun mungkin privat atau link tidak valid.',
+        detail: `HTTP ${pageRes.status} — cuplikan respons: ${html.slice(0, 150).replace(/\s+/g, ' ')}`,
+      })
       return
     }
 
@@ -40,6 +44,6 @@ export default async function handler(req, res) {
       images,
     })
   } catch (err) {
-    res.status(500).json({ error: 'Gagal mengambil postingan, coba lagi.' })
+    res.status(500).json({ error: 'Gagal mengambil postingan, coba lagi.', detail: String(err?.message || err) })
   }
 }

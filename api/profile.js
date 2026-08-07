@@ -12,15 +12,30 @@ export default async function handler(req, res) {
       {
         headers: {
           'x-ig-app-id': '936619743392459',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
         },
       }
     )
-    const data = await response.json()
-    const user = data?.data?.user
+    const rawText = await response.text()
 
+    let data
+    try {
+      data = JSON.parse(rawText)
+    } catch {
+      res.status(502).json({
+        error: 'Instagram menolak permintaan ini (kemungkinan mendeteksi server sebagai bot).',
+        detail: `HTTP ${response.status} — respons bukan JSON: ${rawText.slice(0, 150).replace(/\s+/g, ' ')}`,
+      })
+      return
+    }
+
+    const user = data?.data?.user
     if (!user) {
-      res.status(404).json({ error: 'Akun tidak ditemukan.' })
+      res.status(404).json({
+        error: 'Akun tidak ditemukan.',
+        detail: JSON.stringify(data).slice(0, 150),
+      })
       return
     }
 
@@ -31,6 +46,6 @@ export default async function handler(req, res) {
       profilePic: user.profile_pic_url_hd || user.profile_pic_url,
     })
   } catch (err) {
-    res.status(500).json({ error: 'Gagal mengambil profil, coba lagi.' })
+    res.status(500).json({ error: 'Gagal mengambil profil, coba lagi.', detail: String(err?.message || err) })
   }
 }
