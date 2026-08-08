@@ -1,5 +1,7 @@
-function unescapeUrl(url) {
-  return url.replace(/\\u0026/g, '&').replace(/\\\//g, '/').replace(/\\u003D/g, '=')
+function extractMeta(html, property) {
+  const regex = new RegExp(`<meta property="${property}" content="([^"]*)"`)
+  const match = html.match(regex)
+  return match ? match[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"') : null
 }
 
 function extractShortcode(url) {
@@ -17,7 +19,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const pageRes = await fetch(`https://www.instagram.com/p/${shortcode}/embed/captioned/`, {
+    const pageRes = await fetch(`https://www.instagram.com/p/${shortcode}/`, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
@@ -25,23 +27,23 @@ export default async function handler(req, res) {
     })
     const html = await pageRes.text()
 
-    const videoMatch = html.match(/"video_url":"([^"]+)"/)
-    const imageMatches = [...html.matchAll(/"display_url":"([^"]+)"/g)]
-    const images = [...new Set(imageMatches.map((m) => unescapeUrl(m[1])))]
+    const video = extractMeta(html, 'og:video:secure_url') || extractMeta(html, 'og:video')
+    const image = extractMeta(html, 'og:image')
 
-    if (!videoMatch && images.length === 0) {
+    if (!video && !image) {
       res.status(404).json({
-        error: 'Media tidak ditemukan. Akun mungkin privat atau link tidak valid.',
-        detail: `HTTP ${pageRes.status} — cuplikan respons: ${html.slice(0, 150).replace(/\s+/g, ' ')}`,
+        error: 'Media tidak ditemukan. Akun mungkin privat, link tidak valid, atau sedang dibatasi sementara oleh Instagram.',
+        detail: `HTTP ${pageRes.status}, panjang HTML ${html.length}`,
       })
       return
     }
 
     res.status(200).json({
-      type: videoMatch ? 'video' : 'image',
+      type: video ? 'video' : 'image',
       shortcode,
-      video: videoMatch ? unescapeUrl(videoMatch[1]) : null,
-      images,
+      video: video || null,
+      images: image ? [image] : [],
+      note: !video && image ? 'Kalau ini carousel (banyak foto), cuma foto pertama yang bisa diambil lewat cara ini.' : null,
     })
   } catch (err) {
     res.status(500).json({ error: 'Gagal mengambil postingan, coba lagi.', detail: String(err?.message || err) })

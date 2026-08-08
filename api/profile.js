@@ -1,3 +1,9 @@
+function extractMeta(html, property) {
+  const regex = new RegExp(`<meta property="${property}" content="([^"]*)"`)
+  const match = html.match(regex)
+  return match ? match[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&') : null
+}
+
 export default async function handler(req, res) {
   const { username } = req.query
 
@@ -7,43 +13,29 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(
-      `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
-      {
-        headers: {
-          'x-ig-app-id': '936619743392459',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        },
-      }
-    )
-    const rawText = await response.text()
+    const pageRes = await fetch(`https://www.instagram.com/${encodeURIComponent(username)}/`, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      },
+    })
+    const html = await pageRes.text()
 
-    let data
-    try {
-      data = JSON.parse(rawText)
-    } catch {
-      res.status(502).json({
-        error: 'Instagram menolak permintaan ini (kemungkinan mendeteksi server sebagai bot).',
-        detail: `HTTP ${response.status} — respons bukan JSON: ${rawText.slice(0, 150).replace(/\s+/g, ' ')}`,
-      })
-      return
-    }
+    const profilePic = extractMeta(html, 'og:image')
+    const title = extractMeta(html, 'og:title')
 
-    const user = data?.data?.user
-    if (!user) {
+    if (!profilePic) {
       res.status(404).json({
-        error: 'Akun tidak ditemukan.',
-        detail: JSON.stringify(data).slice(0, 150),
+        error: 'Foto profil tidak ditemukan. Akun mungkin privat, tidak ada, atau sedang dibatasi sementara oleh Instagram.',
+        detail: `HTTP ${pageRes.status}, panjang HTML ${html.length}`,
       })
       return
     }
 
     res.status(200).json({
-      username: user.username,
-      fullName: user.full_name || '',
-      isPrivate: !!user.is_private,
-      profilePic: user.profile_pic_url_hd || user.profile_pic_url,
+      username,
+      fullName: title ? title.split(' (@')[0] : '',
+      profilePic,
     })
   } catch (err) {
     res.status(500).json({ error: 'Gagal mengambil profil, coba lagi.', detail: String(err?.message || err) })
