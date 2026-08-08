@@ -210,6 +210,8 @@ export default function App() {
                 ))}
               </>
             )}
+
+            {result.note && <p className="text-[12px] text-muted px-1">{result.note}</p>}
           </div>
         )}
 
